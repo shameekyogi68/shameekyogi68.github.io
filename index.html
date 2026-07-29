@@ -19,7 +19,8 @@
   <meta name="twitter:title" content="Shameek Yogi — Professional Portfolio">
   <meta name="twitter:description" content="Building digital products across software, AI, and emerging technologies.">
 
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23050505'/%3E%3Ctext x='16' y='22' font-family='Helvetica,Arial' font-size='17' font-weight='700' fill='%2300d68e' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
+  <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16.png">
 
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -179,10 +180,10 @@
       -moz-osx-font-smoothing: grayscale;
       font-synthesis: none;
       text-rendering: optimizeLegibility;
-      /* App-shell feel on touch: no grey flash on tap, and no rubber-band or
-         pull-to-refresh past the ends of the page when installed. */
+      /* No grey flash on tap. Deliberately NOT setting overscroll-behavior:
+         suppressing pull-to-refresh removes the gesture people reach for when
+         a page misbehaves, and buys very little. */
       -webkit-tap-highlight-color: transparent;
-      overscroll-behavior-y: none;
     }
 
     ::selection { background: var(--em); color: var(--void-deep); }
@@ -2381,12 +2382,36 @@
     let ticking = false;
     let lastActive = '';
 
+    /* The dock has five slots for seven sections, so some sections share one.
+       Resolve by document position — the last dock target at or before the
+       current section — so the highlight only ever moves forward as you scroll.
+       The old hand-written map sent Interests back to About, which lit About a
+       second time near the bottom of the page and threw the pill backwards. */
+    const dockTargets = mobileLinks
+      .map(l => (l.getAttribute('href') || '').slice(1))
+      .filter(id => sectionIds.includes(id));
+
+    function dockFor(id) {
+      const i = sectionIds.indexOf(id);
+      let best = dockTargets[0];
+      for (const t of dockTargets) {
+        if (sectionIds.indexOf(t) <= i) best = t;
+      }
+      return best;
+    }
+
     function movePill(pill, el, container) {
       if (!pill || !el) return;
       const a = el.getBoundingClientRect();
       const b = container.getBoundingClientRect();
+      /* The pill is absolutely positioned, so it is placed from the container's
+         padding box. Measuring against the border-box rect leaves it short by
+         the border + padding — 7px on the dock, which reads as a misaligned
+         highlight under every item. */
+      const cs = getComputedStyle(container);
+      const originX = b.left + parseFloat(cs.borderLeftWidth || 0) + parseFloat(cs.paddingLeft || 0);
       pill.style.width = a.width + 'px';
-      pill.style.transform = 'translateX(' + (a.left - b.left) + 'px)';
+      pill.style.transform = 'translateX(' + (a.left - originX) + 'px)';
       pill.classList.add('on');
     }
 
@@ -2408,7 +2433,7 @@
 
       if (current !== lastActive) {
         lastActive = current;
-        const mobileFor = { process: 'work', interests: 'about' }[current] || current;
+        const mobileFor = dockFor(current);
 
         desktopLinks.forEach(l => {
           const on = l.getAttribute('href') === '#' + current;
@@ -2473,6 +2498,29 @@
 
     nHam.addEventListener('click', () => setMenu(nHam.getAttribute('aria-expanded') !== 'true'));
     mobMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setMenu(false)));
+
+    /* Below 768px the hamburger and its overlay are display:none and the bottom
+       dock takes over. If the menu was open when the viewport crossed that line
+       — rotating a phone from landscape to portrait is enough — the overlay
+       disappears but the body scroll lock would survive, with no visible control
+       left to release it. The page then cannot be scrolled at all. */
+    const releaseStuckMenu = () => {
+      if (nHam.getAttribute('aria-expanded') !== 'true') return;
+      /* Test the button's rendered state rather than a breakpoint: if the only
+         control that can close the menu is not on screen, the menu must not be
+         left open, whatever the viewport is doing. */
+      if (getComputedStyle(nHam).display === 'none') setMenu(false);
+    };
+    window.addEventListener('resize', releaseStuckMenu, { passive: true });
+    window.addEventListener('orientationchange', releaseStuckMenu, { passive: true });
+    window.matchMedia('(max-width: 768px)').addEventListener('change', releaseStuckMenu);
+    window.addEventListener('pageshow', releaseStuckMenu);
+    releaseStuckMenu();
+
+    /* Last resort. A locked page cannot scroll, so it cannot fire the handlers
+       above; the dock is the one control still on screen, so let it clear the
+       lock unconditionally rather than depend on any event arriving. */
+    mobileLinks.forEach(a => a.addEventListener('click', () => setMenu(false)));
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && mobMenu.classList.contains('active')) setMenu(false);
     });

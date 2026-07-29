@@ -4,7 +4,7 @@
  * handler drops every cache that doesn't carry the current version, so stale
  * shells can't survive an update.
  */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL   = `shell-${VERSION}`;
 const RUNTIME = `runtime-${VERSION}`;
 
@@ -16,6 +16,8 @@ const PRECACHE = [
   './icon-192.png',
   './icon-512.png',
   './apple-touch-icon.png',
+  './favicon-32.png',
+  './favicon-16.png',
   './manifest.webmanifest'
 ];
 
