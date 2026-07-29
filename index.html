@@ -2307,7 +2307,28 @@
       html.classList.remove('is-loading');
       preloader.classList.add('done');
       document.body.classList.add('hero-in');
+      restoreHashTarget();
       setTimeout(() => preloader.remove(), 1100);
+    }
+
+    /* The curtain locks scrolling while it is up, so the browser's own jump to
+       a :target is discarded and a shared deep link lands on the hero with a
+       stale hash. Re-apply it now that scrolling is unlocked — instantly, so a
+       link to a section far down the page doesn't smooth-scroll the whole way. */
+    function restoreHashTarget() {
+      const id = location.hash.slice(1);
+      if (!id) return;
+      let target;
+      try { target = document.getElementById(decodeURIComponent(id)); } catch (e) { return; }
+      if (!target) return;
+      /* Wait a frame: `is-loading` (overflow: hidden) is removed synchronously
+         just above, and the unlock has to be applied before a scroll will take. */
+      requestAnimationFrame(() => {
+        const prev = html.style.scrollBehavior;
+        html.style.scrollBehavior = 'auto';
+        target.scrollIntoView();
+        html.style.scrollBehavior = prev;
+      });
     }
 
     if (reduce) {
