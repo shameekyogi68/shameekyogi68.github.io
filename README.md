@@ -13,15 +13,29 @@ pushing to `main`.
 - **Hosting:** GitHub Pages (deploys from `main` on push)
 - **Type:** Space Grotesk, Instrument Serif, JetBrains Mono
 - **Images:** WebP, sized to their display dimensions
+- **Installable:** PWA — offline-capable, installs to home screen on iOS and Android
 
 ## Structure
 
 ```
-index.html         the entire site — markup, styles, and scripts
-photo-hero.webp    hero portrait
-photo-about.webp   about portrait / contact avatar
-.nojekyll          serve files as-is, skip Jekyll processing
+index.html             the entire site — markup, styles, and scripts
+sw.js                  service worker: offline shell + asset caching
+manifest.webmanifest   PWA metadata (name, icons, theme, standalone display)
+photo-hero.webp        hero portrait
+photo-about.webp       about portrait / contact avatar
+icon-192/512.png       app icons (any + maskable)
+apple-touch-icon.png   iOS home-screen icon
+.nojekyll              serve files as-is, skip Jekyll processing
 ```
+
+## Updating
+
+Push to `main` and Pages redeploys. Navigations are network-first, so content
+changes reach visitors on their next load.
+
+**Bump `VERSION` in `sw.js`** when a precached asset changes (an image, the icons,
+the manifest). The activate handler deletes every cache that doesn't match, which
+is what stops a stale shell from surviving the update.
 
 ## Running locally
 
